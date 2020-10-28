@@ -11,34 +11,29 @@ module.exports.handler = (event, context, callback) => {
         "X-Requested-With": "*",
         "Access-Control-Allow-Headers": 'Content-Type,X-Amz-Date,Authorization,x-api-key,x-requested-with,Cache-Control',
     };
-
-    if (event.pathParameters.id === undefined) {
-        return callback(null, { headers: headers, statusCode: 400, body: JSON.stringify("Missing 'id' in URL path.")});
-    }
-
+    
     const params = {
-        TableName: process.env.TODOS_TABLE,
-        Key: {
-            id: event.pathParameters.id
-        }
+        TableName: process.env.TODOS_TABLE
     };
 
-    dynamoDb.delete(params, (error) => {
+    dynamoDb.scan(params, (error, result) => {
+        // handle potential errors
         if (error) {
             console.error(error);
             callback(null, {
-                statusCode: error.statusCode || 501,
                 headers: headers,
-                body: JSON.stringify('Couldn\'t delete todo.'),
+                statusCode: error.statusCode || 501,
+                body: JSON.stringify('Couldn\'t fetch the todos.'),
             });
             return;
         }
 
-        callback(null, {
-            headers: headers,
+        // create a response
+        const response = {
             statusCode: 200,
-            body: JSON.stringify({})
-        });
+            headers: headers,
+            body: JSON.stringify(result.Items)
+        };
+        callback(null, response);
     });
-
 };
